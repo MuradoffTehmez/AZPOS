@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddSingleton<IUserSession, UserSession>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ISaleService, SaleService>();
+        services.AddScoped<IInventoryService, InventoryService>();
         return services;
     }
 }

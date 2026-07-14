@@ -58,7 +58,8 @@ public sealed class MainForm : MaterialForm
         AddMenuItem(menu, "Satış", new[] { RoleNames.Cashier, RoleNames.Manager, RoleNames.Admin }, role,
             () => _serviceProvider.GetRequiredService<CheckoutForm>().ShowDialog(this));
         AddMenuItem(menu, "Növbə", new[] { RoleNames.Cashier, RoleNames.Manager, RoleNames.Admin }, role, null);
-        AddMenuItem(menu, "İnventar", new[] { RoleNames.Manager, RoleNames.Admin }, role, null);
+        AddMenuItem(menu, "İnventar", new[] { RoleNames.Manager, RoleNames.Admin }, role,
+            () => _serviceProvider.GetRequiredService<InventoryForm>().ShowDialog(this));
         AddMenuItem(menu, "Hesabatlar", new[] { RoleNames.Manager, RoleNames.Admin }, role, null);
         AddMenuItem(menu, "İnzibatçılıq", new[] { RoleNames.Admin }, role, null);
 
