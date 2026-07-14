@@ -1,4 +1,6 @@
 using MarketPOS.Application.Abstractions;
+using MarketPOS.Application.Abstractions.Hardware;
+using MarketPOS.Infrastructure.Hardware;
 using MarketPOS.Infrastructure.Persistence;
 using MarketPOS.Infrastructure.Security;
 using Microsoft.Data.Sqlite;
@@ -37,6 +39,12 @@ public static class DependencyInjection
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
+
+        // Mock hardware adapters — real device SDKs stay out of Phase 1 by design.
+        services.AddSingleton<IBarcodeScanner, MockBarcodeScanner>();
+        services.AddSingleton<IScaleReader, MockScaleReader>();
+        services.AddSingleton<IReceiptPrinter, MockReceiptPrinter>();
+        services.AddSingleton<ILabelPrinter, MockLabelPrinter>();
 
         // Order matters: migrate first, then seed (hosted services start in registration order).
         services.AddHostedService<LocalDatabaseMigrator>();

@@ -19,6 +19,7 @@ public static class DependencyInjection
     {
         services.AddSingleton<IUserSession, UserSession>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ISaleService, SaleService>();
         return services;
     }
 }

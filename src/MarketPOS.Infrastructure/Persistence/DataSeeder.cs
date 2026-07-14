@@ -64,6 +64,54 @@ internal sealed class DataSeeder : IHostedService
                 "Default admin user created (username: {Username}, password: {Password}). Change the password immediately",
                 DefaultAdminUsername, DefaultAdminPassword);
         }
+
+        await SeedDemoProductsAsync(context, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Seeds a handful of demo products on first run so checkout can be tried
+    /// immediately; skipped as soon as any real product exists.
+    /// </summary>
+    private async Task SeedDemoProductsAsync(LocalDbContext context, CancellationToken cancellationToken)
+    {
+        if (await context.Products.AnyAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return;
+        }
+
+        var category = new Category { Name = "Ərzaq" };
+        context.Categories.Add(category);
+
+        var products = new[]
+        {
+            new Product
+            {
+                SKU = "BRD001", Barcode = "4760000000017", Name = "Çörək",
+                Category = category, UnitType = Domain.Enums.UnitType.Piece,
+                Price = 0.60m, CostPrice = 0.40m, TaxRate = 0m, IsActive = true
+            },
+            new Product
+            {
+                SKU = "MLK001", Barcode = "4760000000024", Name = "Süd 1L",
+                Category = category, UnitType = Domain.Enums.UnitType.Piece,
+                Price = 2.50m, CostPrice = 1.80m, TaxRate = 0.18m, IsActive = true
+            },
+            new Product
+            {
+                SKU = "APL001", Barcode = "2000000000012", Name = "Alma (kq)",
+                Category = category, UnitType = Domain.Enums.UnitType.Weight,
+                Price = 3.20m, CostPrice = 2.10m, TaxRate = 0.18m, IsActive = true
+            }
+        };
+        context.Products.AddRange(products);
+
+        context.Inventories.AddRange(
+            new Inventory { Product = products[0], QuantityOnHand = 100m, ReorderLevel = 20m },
+            new Inventory { Product = products[1], QuantityOnHand = 50m, ReorderLevel = 10m },
+            new Inventory { Product = products[2], QuantityOnHand = 25.5m, ReorderLevel = 5m });
+
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        _logger.LogInformation("Seeded {Count} demo products", products.Length);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
