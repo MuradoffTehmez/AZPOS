@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MarketPOS.Application\MarketPOS.Application.csproj" />
+    <ProjectReference Include="..\..\src\MarketPOS.Infrastructure\MarketPOS.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

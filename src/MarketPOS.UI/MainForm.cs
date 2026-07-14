@@ -2,6 +2,7 @@ using MarketPOS.Application.Abstractions;
 using MarketPOS.Application.Models;
 using MaterialSkin;
 using MaterialSkin.Controls;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MarketPOS.UI;
 
@@ -12,15 +13,18 @@ namespace MarketPOS.UI;
 public sealed class MainForm : MaterialForm
 {
     private readonly IUserSession _session;
+    private readonly IServiceProvider _serviceProvider;
 
     /// <summary>
     /// Creates the main window, applies the MaterialSkin theme and builds the
     /// role-filtered menu.
     /// </summary>
     /// <param name="session">Signed-in user session.</param>
-    public MainForm(IUserSession session)
+    /// <param name="serviceProvider">Root provider to resolve module screens.</param>
+    public MainForm(IUserSession session, IServiceProvider serviceProvider)
     {
         _session = session;
+        _serviceProvider = serviceProvider;
 
         InitializeMaterialSkin();
 
@@ -51,17 +55,18 @@ public sealed class MainForm : MaterialForm
 
         var menu = new MenuStrip { Dock = DockStyle.Top };
 
-        AddMenuItem(menu, "Satış", visibleFor: new[] { RoleNames.Cashier, RoleNames.Manager, RoleNames.Admin }, role);
-        AddMenuItem(menu, "Növbə", visibleFor: new[] { RoleNames.Cashier, RoleNames.Manager, RoleNames.Admin }, role);
-        AddMenuItem(menu, "İnventar", visibleFor: new[] { RoleNames.Manager, RoleNames.Admin }, role);
-        AddMenuItem(menu, "Hesabatlar", visibleFor: new[] { RoleNames.Manager, RoleNames.Admin }, role);
-        AddMenuItem(menu, "İnzibatçılıq", visibleFor: new[] { RoleNames.Admin }, role);
+        AddMenuItem(menu, "Satış", new[] { RoleNames.Cashier, RoleNames.Manager, RoleNames.Admin }, role,
+            () => _serviceProvider.GetRequiredService<CheckoutForm>().ShowDialog(this));
+        AddMenuItem(menu, "Növbə", new[] { RoleNames.Cashier, RoleNames.Manager, RoleNames.Admin }, role, null);
+        AddMenuItem(menu, "İnventar", new[] { RoleNames.Manager, RoleNames.Admin }, role, null);
+        AddMenuItem(menu, "Hesabatlar", new[] { RoleNames.Manager, RoleNames.Admin }, role, null);
+        AddMenuItem(menu, "İnzibatçılıq", new[] { RoleNames.Admin }, role, null);
 
         MainMenuStrip = menu;
         return menu;
     }
 
-    private static void AddMenuItem(MenuStrip menu, string text, string[] visibleFor, string currentRole)
+    private static void AddMenuItem(MenuStrip menu, string text, string[] visibleFor, string currentRole, Action? onClick)
     {
         if (!visibleFor.Contains(currentRole))
         {
@@ -70,9 +75,14 @@ public sealed class MainForm : MaterialForm
 
         var item = new ToolStripMenuItem(text)
         {
-            // Module screens attach here in steps 5-8.
-            Enabled = true
+            // Items without a handler are placeholders for screens arriving in steps 6-8.
+            Enabled = onClick is not null
         };
+        if (onClick is not null)
+        {
+            item.Click += (_, _) => onClick();
+        }
+
         menu.Items.Add(item);
     }
 

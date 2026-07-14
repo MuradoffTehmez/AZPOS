@@ -90,6 +90,7 @@ internal static class Program
                 services.AddInfrastructure(context.Configuration);
                 services.AddHostedService<SyncBackgroundService>();
                 services.AddTransient<LoginForm>();
+                services.AddTransient<CheckoutForm>();
                 services.AddSingleton<MainForm>();
             })
             .Build();
