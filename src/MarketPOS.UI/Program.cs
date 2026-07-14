@@ -1,16 +1,89 @@
+using System.Data.Common;
+using System.Runtime.InteropServices;
+using MarketPOS.Application;
+using MarketPOS.Infrastructure;
+using MarketPOS.Sync;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Serilog;
+
 namespace MarketPOS.UI;
 
-static class Program
+/// <summary>
+/// Application entry point: configures logging, the DI container (Generic Host)
+/// and top-level structured error handling with distinct exit codes.
+/// </summary>
+internal static class Program
 {
-    /// <summary>
-    ///  The main entry point for the application.
-    /// </summary>
+    private const int ExitOk = 0;
+    private const int ExitDatabaseError = 1;
+    private const int ExitHardwareError = 2;
+    private const int ExitUnexpectedError = 99;
+
     [STAThread]
-    static void Main()
+    private static int Main()
     {
-        // To customize application configuration such as set high DPI settings or default font,
-        // see https://aka.ms/applicationconfiguration.
-        ApplicationConfiguration.Initialize();
-        Application.Run(new Form1());
-    }    
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .WriteTo.Console()
+            .WriteTo.File(
+                Path.Combine(AppContext.BaseDirectory, "logs", "marketpos-.log"),
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 30)
+            .CreateLogger();
+
+        try
+        {
+            ApplicationConfiguration.Initialize();
+
+            using var host = CreateHost();
+            host.Start();
+
+            var mainForm = host.Services.GetRequiredService<MainForm>();
+            System.Windows.Forms.Application.Run(mainForm);
+
+            host.StopAsync().GetAwaiter().GetResult();
+            return ExitOk;
+        }
+        catch (DbException ex)
+        {
+            // Transient DB failures are retried lower down (TransientRetry); reaching
+            // here means retries were exhausted or the failure is permanent.
+            Log.Fatal(ex, "Database error — application terminated");
+            ShowFatalError("Verilənlər bazası ilə əlaqə mümkün olmadı. Zəhmət olmasa sistem inzibatçısına müraciət edin.");
+            return ExitDatabaseError;
+        }
+        catch (COMException ex)
+        {
+            Log.Fatal(ex, "Hardware (COM) error — application terminated");
+            ShowFatalError("Kassa avadanlığı ilə əlaqə xətası baş verdi. Cihaz bağlantılarını yoxlayıb yenidən cəhd edin.");
+            return ExitHardwareError;
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Unexpected error — application terminated");
+            ShowFatalError("Gözlənilməz xəta baş verdi. Zəhmət olmasa sistem inzibatçısına müraciət edin.");
+            return ExitUnexpectedError;
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+        }
+    }
+
+    private static IHost CreateHost() =>
+        Host.CreateDefaultBuilder()
+            .UseContentRoot(AppContext.BaseDirectory)
+            .UseSerilog()
+            .ConfigureServices((context, services) =>
+            {
+                services.AddApplication();
+                services.AddInfrastructure(context.Configuration);
+                services.AddHostedService<SyncBackgroundService>();
+                services.AddSingleton<MainForm>();
+            })
+            .Build();
+
+    private static void ShowFatalError(string message) =>
+        MessageBox.Show(message, "MarketPOS — Kritik xəta", MessageBoxButtons.OK, MessageBoxIcon.Error);
 }
