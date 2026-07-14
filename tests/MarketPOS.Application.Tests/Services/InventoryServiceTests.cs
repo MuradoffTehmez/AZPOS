@@ -27,7 +27,21 @@ public sealed class InventoryServiceTests : IDisposable
     {
         using var context = CreateContext();
         context.Database.Migrate();
-        _session.SignIn(new EmployeeInfo(1, "Test Menecer", "menecer1", Role.Manager));
+
+        // Audit logs FK-reference the acting employee, so the session must
+        // point at a persisted row.
+        var employee = new Employee
+        {
+            FullName = "Test Menecer",
+            Username = "menecer1",
+            PasswordHash = "hash",
+            Role = new Role { Name = Role.Manager },
+            IsActive = true
+        };
+        context.Employees.Add(employee);
+        context.SaveChanges();
+
+        _session.SignIn(new EmployeeInfo(employee.Id, employee.FullName, employee.Username, Role.Manager));
     }
 
     public void Dispose()

@@ -1,3 +1,4 @@
+using System.Globalization;
 using MarketPOS.Application.Abstractions;
 using MarketPOS.Application.Models;
 using MarketPOS.Domain.Entities;
@@ -131,7 +132,10 @@ public sealed class InventoryService : IInventoryService
 
         if (product.Price != model.Price)
         {
-            await WriteAuditAsync("PriceChanged", product.Price.ToString("0.00"), model.Price.ToString("0.00"),
+            // Audit values are machine-readable history — always culture-invariant.
+            await WriteAuditAsync("PriceChanged",
+                product.Price.ToString("0.00", CultureInfo.InvariantCulture),
+                model.Price.ToString("0.00", CultureInfo.InvariantCulture),
                 cancellationToken, product.Id).ConfigureAwait(false);
         }
 
