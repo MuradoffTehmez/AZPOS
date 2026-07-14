@@ -39,6 +39,15 @@ internal static class Program
             using var host = CreateHost();
             host.Start();
 
+            using (var loginForm = host.Services.GetRequiredService<LoginForm>())
+            {
+                if (loginForm.ShowDialog() != DialogResult.OK)
+                {
+                    host.StopAsync().GetAwaiter().GetResult();
+                    return ExitOk;
+                }
+            }
+
             var mainForm = host.Services.GetRequiredService<MainForm>();
             System.Windows.Forms.Application.Run(mainForm);
 
@@ -80,6 +89,7 @@ internal static class Program
                 services.AddApplication();
                 services.AddInfrastructure(context.Configuration);
                 services.AddHostedService<SyncBackgroundService>();
+                services.AddTransient<LoginForm>();
                 services.AddSingleton<MainForm>();
             })
             .Build();

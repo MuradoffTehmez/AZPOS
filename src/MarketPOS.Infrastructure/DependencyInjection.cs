@@ -1,5 +1,6 @@
 using MarketPOS.Application.Abstractions;
 using MarketPOS.Infrastructure.Persistence;
+using MarketPOS.Infrastructure.Security;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -35,7 +36,11 @@ public static class DependencyInjection
             options.UseSqlite(ResolveLocalCachePath(configuration.GetConnectionString(LocalCacheConnectionName))));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
+
+        // Order matters: migrate first, then seed (hosted services start in registration order).
         services.AddHostedService<LocalDatabaseMigrator>();
+        services.AddHostedService<DataSeeder>();
 
         return services;
     }
